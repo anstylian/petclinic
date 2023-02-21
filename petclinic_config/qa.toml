@@ -1,0 +1,11 @@
+config_name = "qa"
+
+[database]
+path = "db.sqlite"
+connections = 8
+
+[redis]
+server = "localhost"
+
+[session]
+timeout = 108000

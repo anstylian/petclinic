@@ -1,58 +1,43 @@
-use std::{
-    error::Error,
-    sync::{Arc, Mutex},
-};
-
+use anyhow::Result;
+use argh::FromArgs;
 use axum::{
     async_trait,
-    extract::{Extension, FromRequest, RequestParts},
-    http::StatusCode,
+    extract::{Extension, FromRequestParts},
+    http::{request::Parts, StatusCode},
     middleware::from_extractor,
     response::{Html, IntoResponse, Redirect, Response},
     routing::{get, get_service, post},
     Router,
 };
-
 use axum_extra::extract::cookie::CookieJar;
-
+use context::Context;
+use db::models::user::User;
 use handlers::*;
-use petclinic::Env;
-
-use argh::FromArgs;
-use logic::users::User;
-
-use rbatis::rbatis::Rbatis;
-use redis::{Commands, Connection, RedisError};
-
+use redis::{Commands, RedisError};
 use serde_json::Value;
+use settings::Settings;
+use std::sync::Arc;
 use tera::Tera;
-
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::{debug, info};
+
+mod context;
+mod db;
 mod handlers;
 mod logic;
+mod settings;
 
 #[derive(FromArgs)]
 /// Unipromos webservice for cart
 struct Args {
-    /// environment (dev,testing,live)
-    #[argh(option, default = "String::from(\"dev\")")]
-    env: String,
-
     /// web service port to bind to
     #[argh(option, default = "3000")]
     port: u16,
 }
 
-pub struct Context {
-    pub rb: Rbatis,
-    pub env: Env,
-    pub redis_connection: Mutex<Connection>,
-}
-
 #[derive(Debug)]
 pub struct AppError {
-    inner: Box<dyn Error>,
+    inner: anyhow::Error,
 }
 
 impl IntoResponse for AppError {
@@ -61,20 +46,20 @@ impl IntoResponse for AppError {
     }
 }
 
-impl From<rbatis::Error> for AppError {
-    fn from(e: rbatis::Error) -> Self {
-        AppError { inner: Box::new(e) }
-    }
-}
-impl From<Box<dyn Error>> for AppError {
-    fn from(e: Box<dyn Error>) -> Self {
-        AppError { inner: e }
+impl<E> From<E> for AppError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from(e: E) -> Self {
+        AppError { inner: e.into() }
     }
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let args: Args = argh::from_env();
+
+    let settings = Arc::new(Settings::new()?);
 
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "warn,petclinic=debug")
@@ -82,60 +67,36 @@ async fn main() {
 
     tracing_subscriber::fmt::init();
 
-    let env_name = args.env.as_str();
-
-    info!("Env: {env_name}");
-    let env = petclinic::from_str(env_name);
-    let state = create_context(env.clone()).await;
+    info!("Env: {settings:?}");
+    let state = Context::new(Arc::clone(&settings))?;
 
     let app = get_public_routes()
         .merge(get_protected_routes())
-        .fallback(get(|| async { "fallback route?" }))
+        .fallback(|| async { "fallback route?" })
         .layer(TraceLayer::new_for_http())
         .route_layer(Extension(Arc::new(state)))
-        .route_layer(Extension(Arc::new(env)))
+        .route_layer(Extension(settings))
         .route_layer(Extension(get_tera_instance()));
 
-    axum::Server::bind(&format!("0.0.0.0:{}", args.port).parse().unwrap())
+    axum::Server::bind(&format!("0.0.0.0:{}", args.port).parse()?)
         .serve(app.into_make_service())
-        .await
-        .unwrap();
+        .await?;
 
     info!("Server started");
+    Ok(())
 }
 
-async fn create_context(env: Env) -> Context {
-    let rb = Rbatis::new();
-    let dsn = format!(
-        "mysql://{}:{}@{}/{}",
-        env.db_username, env.db_password, env.db_server, env.db_name
-    );
-    rb.link(dsn.as_str()).await.unwrap();
-
-    let redis_url = match &env.redis_password {
-        Some(password) => format!("redis://:{}@{}", password, env.redis_server),
-        None => format!("redis://{}", env.redis_server),
-    };
-
-    let client = redis::Client::open(redis_url).unwrap();
-    let redis_connection = client.get_connection().unwrap();
-
-    Context {
-        rb,
-        env,
-        redis_connection: Mutex::new(redis_connection),
-    }
-}
 fn get_public_routes() -> Router {
     Router::new()
         .route("/", get(home::home))
         .route("/logout", get(auth::logout))
         .route("/login", get(auth::login).post(auth::post_login))
-        .nest(
+        .nest_service(
             "/static",
             get_service(ServeDir::new("static")).handle_error(|_| async move {}),
         )
 }
+
 fn get_protected_routes() -> Router {
     Router::new()
         .route("/vets", get(vets::list))
@@ -181,53 +142,63 @@ fn get_tera_instance() -> Tera {
 }
 
 #[async_trait]
-impl<B> FromRequest<B> for User
+impl<S> FromRequestParts<S> for User
 where
-    B: Send,
+    S: Send + Sync,
 {
     type Rejection = (StatusCode, Redirect);
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let Extension(context) = Extension::<Arc<Context>>::from_request(req).await.unwrap();
-        let Extension(env) = Extension::<Arc<Env>>::from_request(req).await.unwrap();
-        let cookiejar = Option::<CookieJar>::from_request(req)
-            .await
-            .unwrap()
-            .unwrap();
+    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+        let context = Arc::clone(parts.extensions.get::<Arc<Context>>().ok_or_else(|| {
+            tracing::debug!("Failed to get mut Context");
+            (StatusCode::TEMPORARY_REDIRECT, Redirect::to("/login"))
+        })?);
 
-        let tera = req.extensions_mut().get_mut::<Tera>().unwrap();
+        let cookiejar = CookieJar::from_headers(&parts.headers);
 
-        if cookiejar.get("axum_session").is_none() {
-            debug!("Session cookie not found, redirecting to login url");
-            return Err((StatusCode::TEMPORARY_REDIRECT, Redirect::to("/login")));
-        }
+        let tera = parts.extensions.get_mut::<Tera>().ok_or_else(|| {
+            tracing::debug!("Failed to get mut Tera");
+            (StatusCode::TEMPORARY_REDIRECT, Redirect::to("/login"))
+        })?;
 
         // check if the session cookie is valid against  redis
-        let mut connection = context.redis_connection.lock().unwrap();
-        let cookie = cookiejar.get("axum_session").unwrap();
+        let mut connection = context.redis_connection.lock().await;
+        let cookie = cookiejar.get("axum_session").ok_or_else(|| {
+            debug!("Session cookie not found, redirecting to login url");
+            (StatusCode::TEMPORARY_REDIRECT, Redirect::to("/login"))
+        })?;
 
         let valid_session: Result<User, RedisError> = connection.get(cookie.value());
 
         match valid_session {
             Ok(user) => {
                 // refresh the key ttl
-                let _redis_response: Result<(), RedisError> =
-                    connection.expire(cookie.value(), context.env.session_timeout);
+                connection
+                    .expire(cookie.value(), context.settings.session.timeout)
+                    .map_err(|e| {
+                        tracing::debug!("{e:?}");
+                        (StatusCode::TEMPORARY_REDIRECT, Redirect::to("/login"))
+                    })?;
+
                 tera.register_function(
                     "principal",
                     Principal {
                         user: Some(user.clone()),
                     },
                 );
-                if env.name == "dev" {
-                    tera.full_reload().unwrap();
+
+                if context.settings.config_name == "development" {
+                    tera.full_reload().map_err(|e| {
+                        tracing::debug!("{e:?}");
+                        (StatusCode::TEMPORARY_REDIRECT, Redirect::to("/login"))
+                    })?;
                 }
 
-                return Ok(user);
+                Ok(user)
             }
             Err(_error) => {
                 // redis query failed
-                return Err((StatusCode::TEMPORARY_REDIRECT, Redirect::to("/login")));
+                Err((StatusCode::TEMPORARY_REDIRECT, Redirect::to("/login")))
             }
         }
     }

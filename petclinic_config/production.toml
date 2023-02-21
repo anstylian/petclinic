@@ -1,0 +1,12 @@
+config_name = "production"
+
+[database]
+path = "db.sqlite"
+connections = 8
+
+[redis]
+server = "localhost"
+password = "redispass"
+
+[session]
+timeout = 108000

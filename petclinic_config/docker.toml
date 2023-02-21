@@ -1,0 +1,11 @@
+config_name = "development"
+
+[database]
+path = "/app/db.sqlite"
+connections = 8
+
+[redis]
+server = "redis"
+
+[session]
+timeout = 108000

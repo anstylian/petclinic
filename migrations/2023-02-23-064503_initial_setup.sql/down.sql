@@ -1,0 +1,4 @@
+DROP TABLE user;
+DROP TABLE vet;
+DROP TABLE pet;
+DROP TABLE visit;

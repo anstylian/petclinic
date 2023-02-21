@@ -19,13 +19,13 @@ This project is aimed at showcasing how you could do:
 * Separate DEV/QA/PROD configurations
 * Live reloading of Tera templates in Dev 
 * Integration of session data with Tera templates
-* Database access using Rbatis
+* Database access using Diesel
 
-## Build
+## Manual Build
 
- There is a schema creation script for Mysql in res/schema.sql
+ There is a schema creation script for SQLite in migrations/2023-02-23-064503_initial_setup.sql/up.sql.
  
- Modify src/lib.rs to specify credentials for Mysql and Redis settings.
+ Modify the configuration file you want to use from `petclinic_config/`
  
  run with
  
@@ -36,7 +36,13 @@ This project is aimed at showcasing how you could do:
  or 
  
  ```
- $ cargo run -- --env dev
+ $ RUN_MODE=development cargo run
  ```
 
 Open the url http://localhost:3000 where you can login with username *admin*, and password *admin*.
+
+## Use docker
+
+```
+$ docker-compose up
+```

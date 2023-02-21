@@ -1,18 +1,16 @@
-use crate::Context;
+use crate::{AppError, Context};
 use axum::{extract::Extension, response::Html};
-use tera::Tera;
-
 use std::sync::Arc;
+use tera::Tera;
 
 pub async fn home(
     Extension(tera): Extension<Tera>,
-    Extension(_state): Extension<Arc<Context>>,
-) -> Html<String> {
+) -> Result<Html<String>, AppError> {
     let c = tera::Context::new();
 
     tracing::debug!("Main request");
 
-    let r = tera.render("home.html", &c).unwrap();
+    let r = tera.render("home.html", &c)?;
 
-    Html::from(r)
+    Ok(Html::from(r))
 }
