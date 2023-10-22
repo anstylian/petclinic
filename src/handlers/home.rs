@@ -1,6 +1,5 @@
-use crate::{AppError, Context};
+use crate::AppError;
 use axum::{extract::Extension, response::Html};
-use std::sync::Arc;
 use tera::Tera;
 
 pub async fn home(

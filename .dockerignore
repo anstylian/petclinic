@@ -4,3 +4,4 @@ petclinic
 *.png
 db.sqlite
 Dockerfile
+/target

@@ -78,11 +78,11 @@ async fn main() -> Result<()> {
         .route_layer(Extension(settings))
         .route_layer(Extension(get_tera_instance()));
 
+    info!("Server started");
     axum::Server::bind(&format!("0.0.0.0:{}", args.port).parse()?)
         .serve(app.into_make_service())
         .await?;
 
-    info!("Server started");
     Ok(())
 }
 
