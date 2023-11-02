@@ -4,26 +4,26 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-argh = "0.1.10"
-axum = { version = "0.6.10", features = ["query", "macros", "form"] }
-axum-extra = { version = "0.7.0", features = ["cookie", "form"] }
-axum-macros = "0.3.4"
-anyhow = "1.0.69"
+argh = "0.1.12"
+axum = { version = "0.6.20", features = ["query", "macros", "form"] }
+axum-extra = { version = "0.8.0", features = ["cookie", "form"] }
+axum-macros = "0.3.8"
+anyhow = "1.0.75"
 hyper = "0.14.24"
-tokio = { version = "1.25.0", features = ["full"] }
+tokio = { version = "1.33.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.92"
-chrono = { version = "0.4.23", features = ["serde"] }
+serde_json = "1.0.108"
+chrono = { version = "0.4.31", features = ["serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower = { version = "0.4", features = ["full"] }
 tower-http = { version = "0.4", features = ["full"] }
-async-trait = "0.1.64"
+async-trait = "0.1.74"
 tera = "1"
 sha-1 = "0.10.1"
 redis = "0.23.3"
 rand = "0.8.5"
 rbson = "2.0"
-diesel = { version = "2.0.3", features = ["sqlite", "chrono"] }
+diesel = { version = "2.1.3", features = ["sqlite", "chrono"] }
 config = "0.13.3"
-deadpool-diesel = { version = "0.4.1", features = ["sqlite"] }
+deadpool-diesel = { version = "0.5.0", features = ["sqlite"] }

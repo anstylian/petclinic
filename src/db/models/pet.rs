@@ -4,8 +4,8 @@ use chrono::NaiveDateTime;
 use diesel::{
     backend::Backend,
     dsl::{AsSelect, Eq},
-    ExpressionMethods, Identifiable, Insertable, QueryDsl, QueryResult, Queryable, RunQueryDsl,
-    Selectable, SelectableHelper, SqliteConnection, AsChangeset,
+    AsChangeset, ExpressionMethods, Identifiable, Insertable, QueryDsl, QueryResult, Queryable,
+    RunQueryDsl, Selectable, SelectableHelper, SqliteConnection,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -37,10 +37,7 @@ pub struct Pet {
     pub created_by: i32,
 }
 
-#[derive(
-    Serialize,
-    Insertable,
-)]
+#[derive(Serialize, Insertable)]
 #[diesel(table_name = pet)]
 pub struct NewPet {
     pub name: String,
@@ -115,7 +112,7 @@ impl Pet {
 
     pub fn update(self, conn: &mut SqliteConnection) -> Result<usize> {
         Ok(diesel::update(crate::db::schema::pet::table)
-           .filter(Self::with_id(self.id))
+            .filter(Self::with_id(self.id))
             .set(self)
             .execute(conn)?)
     }
@@ -128,4 +125,3 @@ impl NewPet {
             .execute(conn)?)
     }
 }
-

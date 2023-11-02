@@ -44,9 +44,4 @@ diesel::joinable!(pet -> vet (vet_id));
 diesel::joinable!(visit -> pet (pet_id));
 diesel::joinable!(visit -> vet (vet_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    pet,
-    user,
-    vet,
-    visit,
-);
+diesel::allow_tables_to_appear_in_same_query!(pet, user, vet, visit,);

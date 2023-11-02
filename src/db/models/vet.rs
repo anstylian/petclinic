@@ -30,10 +30,7 @@ pub struct Vet {
     pub name: String,
 }
 
-#[derive(
-    Serialize,
-    Insertable,
-)]
+#[derive(Serialize, Insertable)]
 #[diesel(table_name = vet)]
 pub struct NewVet {
     pub name: String,
@@ -85,7 +82,7 @@ impl Vet {
 
     pub fn update(self, conn: &mut SqliteConnection) -> Result<usize> {
         Ok(diesel::update(crate::db::schema::vet::table)
-           .filter(Self::with_id(self.id))
+            .filter(Self::with_id(self.id))
             .set(self)
             .execute(conn)?)
     }
@@ -97,5 +94,4 @@ impl NewVet {
             .values(&self)
             .execute(conn)?)
     }
-
 }

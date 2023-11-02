@@ -1,5 +1,5 @@
 use crate::{
-    db::models::pet::{self, Pet, NewPet},
+    db::models::pet::{self, NewPet, Pet},
     db::models::{user::User, vet::Vet},
     AppError, Context,
 };

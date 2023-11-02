@@ -1,5 +1,4 @@
 use anyhow::Result;
-use argh::FromArgs;
 use axum::{
     async_trait,
     extract::{Extension, FromRequestParts},
@@ -27,14 +26,6 @@ mod handlers;
 mod logic;
 mod settings;
 
-#[derive(FromArgs)]
-/// Unipromos webservice for cart
-struct Args {
-    /// web service port to bind to
-    #[argh(option, default = "3000")]
-    port: u16,
-}
-
 #[derive(Debug)]
 pub struct AppError {
     inner: anyhow::Error,
@@ -57,15 +48,13 @@ where
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args: Args = argh::from_env();
-
-    let settings = Arc::new(Settings::new()?);
-
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "warn,petclinic=debug")
     }
 
     tracing_subscriber::fmt::init();
+
+    let settings = Arc::new(Settings::new()?);
 
     info!("Env: {settings:?}");
     let state = Context::new(Arc::clone(&settings))?;
@@ -75,11 +64,13 @@ async fn main() -> Result<()> {
         .fallback(|| async { "fallback route?" })
         .layer(TraceLayer::new_for_http())
         .route_layer(Extension(Arc::new(state)))
-        .route_layer(Extension(settings))
-        .route_layer(Extension(get_tera_instance()));
+        .route_layer(Extension(settings.clone()))
+        .route_layer(Extension(get_tera_instance(
+            settings.tera_templates.as_str(),
+        )));
 
-    info!("Server started");
-    axum::Server::bind(&format!("0.0.0.0:{}", args.port).parse()?)
+    info!("Server started at: {:?}", settings.service_port);
+    axum::Server::bind(&format!("0.0.0.0:{}", settings.service_port).parse()?)
         .serve(app.into_make_service())
         .await?;
 
@@ -128,9 +119,9 @@ impl tera::Function for Principal {
     }
 }
 
-fn get_tera_instance() -> Tera {
+fn get_tera_instance<'a>(tera_templates: impl Into<&'a str>) -> Tera {
     debug!("Creating Tera instance");
-    let mut tera = match Tera::new("templates/**/*") {
+    let mut tera = match Tera::new(tera_templates.into()) {
         Ok(t) => t,
         Err(e) => {
             println!("Parsing error(s): {}", e);

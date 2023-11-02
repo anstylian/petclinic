@@ -1,4 +1,7 @@
-use crate::{db::models::vet::{Vet, NewVet}, AppError, Context};
+use crate::{
+    db::models::vet::{NewVet, Vet},
+    AppError, Context,
+};
 use axum::{
     extract::{Extension, Path, Query},
     response::{Html, IntoResponse, Redirect},
