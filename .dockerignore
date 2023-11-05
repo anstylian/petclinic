@@ -1,7 +1,0 @@
-README.md
-docker-compose.yml
-petclinic
-*.png
-db.sqlite
-Dockerfile
-/target
