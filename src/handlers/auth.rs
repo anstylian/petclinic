@@ -50,7 +50,7 @@ pub async fn post_login(
     jar: CookieJar,
     Form(login): Form<LoginForm>,
 ) -> Result<impl IntoResponse, AppError> {
-    let session_cookie = Cookie::build("axum_session", users::session_key()).finish();
+    let session_cookie = Cookie::new("axum_session", users::session_key());
 
     let user = users::authenticate(&login.username, &login.password, &ctx).await?;
 
@@ -59,7 +59,7 @@ pub async fn post_login(
         // And the redis value is the user info
         let mut conn = ctx.redis_connection.lock().await;
 
-        let redis_key = session_cookie.value();
+        let redis_key = session_cookie.name_value().1;
         let redis_value = serde_json::to_string(&user)?;
         info!("Redis key {} Value: {}", &redis_key, &redis_value);
         let redis_response: Result<(), RedisError> = conn.set_ex(redis_key, redis_value, 10);

@@ -15,6 +15,7 @@ use handlers::*;
 use redis::{Commands, RedisError};
 use serde_json::Value;
 use settings::Settings;
+use tokio::net::TcpListener;
 use std::sync::Arc;
 use tera::Tera;
 use tower_http::{services::ServeDir, trace::TraceLayer};
@@ -70,8 +71,9 @@ async fn main() -> Result<()> {
         )));
 
     info!("Server started at: {:?}", settings.service_port);
-    axum::Server::bind(&format!("0.0.0.0:{}", settings.service_port).parse()?)
-        .serve(app.into_make_service())
+
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", settings.service_port)).await?;
+    axum::serve(listener, app.into_make_service())
         .await?;
 
     Ok(())

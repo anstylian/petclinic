@@ -5,25 +5,25 @@ edition = "2021"
 
 [dependencies]
 argh = "0.1.12"
-axum = { version = "0.6.20", features = ["query", "macros", "form"] }
-axum-extra = { version = "0.8.0", features = ["cookie", "form"] }
-axum-macros = "0.3.8"
+axum = { version = "0.7.1", features = ["query", "macros", "form"] }
+axum-extra = { version = "0.9.0", features = ["cookie", "form"] }
+axum-macros = "0.4.0"
 anyhow = "1.0.75"
-hyper = "0.14.24"
-tokio = { version = "1.33.0", features = ["full"] }
+hyper = "1.0.1"
+tokio = { version = "1.34.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.108"
 chrono = { version = "0.4.31", features = ["serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower = { version = "0.4", features = ["full"] }
-tower-http = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
 async-trait = "0.1.74"
 tera = "1"
 sha-1 = "0.10.1"
 redis = "0.23.3"
 rand = "0.8.5"
 rbson = "2.0"
-diesel = { version = "2.1.3", features = ["sqlite", "chrono"] }
-config = "0.13.3"
+diesel = { version = "2.1.4", features = ["sqlite", "chrono"] }
+config = "0.13.4"
 deadpool-diesel = { version = "0.5.0", features = ["sqlite"] }
