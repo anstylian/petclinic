@@ -60,22 +60,9 @@
         let
           cfg = config.services.petclinic;
 
-          template_footer = readFile ./templates/partials/footer.html;
-          template_navbar = readFile ./templates/partials/navbar.html;
-          template_topbar = readFile ./templates/partials/topbar.html;
-          template_base = readFile ./templates/base.html;
-          template_home = readFile ./templates/home.html;
-          template_auth_login = readFile ./templates/auth/login.html;
-          template_pet_edit = readFile ./templates/pet/edit.html;
-          template_pet_list = readFile ./templates/pet/list.html;
-          template_vet_edit = readFile ./templates/vet/edit.html;
-          template_vet_list = readFile ./templates/vet/list.html;
-
-          static_css_styles = readFile ./static/css/styles.css;
-          static_css_main = readFile ./static/css/main.min.css;
-
-          migrations_2023_02_23_064503_initial_setup_up = readFile ./migrations/2023-02-23-064503_initial_setup.sql/up.sql;
-          migrations_2023_02_23_064503_initial_setup_down = readFile ./migrations/2023-02-23-064503_initial_setup.sql/down.sql;
+          templates = ./templates;
+          static = ./static;
+          migrations = ./migrations;
 
           diesel_config = readFile ./diesel.toml;
         in
@@ -131,26 +118,14 @@
               server = "${cfg.redis-server-name}"
 
               [session]
-              timeout = 10800 
+              timeout = 10800
             '';
 
-            environment.etc."petclinic/templates/partials/footer.html".text = "${template_footer}";
-            environment.etc."petclinic/templates/partials/navbar.html".text = "${template_navbar}";
-            environment.etc."petclinic/templates/partials/topbar.html".text = "${template_topbar}";
-            environment.etc."petclinic/templates/base.html".text = "${template_base}";
-            environment.etc."petclinic/templates/home.html".text = "${template_home}";
-            environment.etc."petclinic/templates/auth/login.html".text = "${template_auth_login}";
-            environment.etc."petclinic/templates/pet/edit.html".text = "${template_pet_edit}";
-            environment.etc."petclinic/templates/pet/list.html".text = "${template_pet_list}";
-            environment.etc."petclinic/templates/vet/edit.html".text = "${template_vet_edit}";
-            environment.etc."petclinic/templates/vet/list.html".text = "${template_vet_list}";
-            environment.etc."petclinic/migrations/migrations_2023-02-23-064503_initial_setup/up.sql".text = "${migrations_2023_02_23_064503_initial_setup_up}";
-            environment.etc."petclinic/migrations/migrations_2023-02-23-064503_initial_setup/down.sql".text = "${migrations_2023_02_23_064503_initial_setup_down}";
+            environment.etc."petclinic/templates".source = "${templates}";
+            environment.etc."petclinic/migrations".source = "${migrations}";
+            environment.etc."petclinic/static".source = "${static}";
+
             environment.etc."petclinic/diesel.toml".text = "${diesel_config}";
-
-            environment.etc."petclinic/static/css/styles.css".text = "${static_css_styles}";
-            environment.etc."petclinic/static/css/main.min.css".text = "${static_css_main}";
-
 
             users.users."petclinic" = {
               name = "petclinic";
